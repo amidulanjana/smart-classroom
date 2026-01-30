@@ -27,13 +27,26 @@ npm start
 ### Step 4: Use the Chat
 1. Open the app
 2. Navigate to the "Messages" tab
-3. Tap any AI suggestion (e.g., "Homework Reminder")
-4. Watch AI generate a professional message!
+3. **Text Generation**: Tap any AI suggestion (e.g., "Homework Reminder")
+4. **Voice Recording**: 
+   - Tap and hold the mic button to record
+   - Speak in English or Sinhala
+   - Release to transcribe automatically
+   - If you speak Sinhala while English is selected, it auto-translates to English (and vice versa)
 5. Switch between English and Sinhala
 
 ## ✅ That's It!
 
 The AI chat now uses OpenAI directly from your app. No backend setup required!
+
+## 🎙️ Voice Recording Features
+
+- **Speech-to-Text**: Record your voice and convert to text using OpenAI Whisper
+- **Auto-Translation**: Speak in one language, get text in another
+  - Speak Sinhala → Get English text (when English is selected)
+  - Speak English → Get Sinhala text (when Sinhala is selected)
+- **Smart Language Detection**: Automatically detects the spoken language
+- **Real-time Feedback**: Visual indicators show recording and processing status
 
 ## 📖 Need More Details?
 
@@ -52,10 +65,11 @@ See [CHAT_INTEGRATION.md](./CHAT_INTEGRATION.md) for:
 
 ## 💡 Pro Tips
 
-1. **Be Specific**: When asking AI to generate messages, include details like dates, assignments, etc.
-2. **Review Before Sending**: Always review AI-generated content before sending
-3. **Custom Templates**: Add your own suggestion chips in `app/(tabs)/chat.tsx`
-4. **Save Favorites**: Consider adding a "save template" feature for frequently used messages
+1. **Voice Recording**: Hold your device 6-12 inches from your mouth for best results
+2. **Cross-Language**: Speak Sinhala to get English text (and vice versa) automatically
+3. **Quiet Environment**: Record in quiet spaces for better accuracy
+4. **Review First**: Always review AI-generated or transcribed content before sending
+5. **Custom Templates**: Add your own suggestion chips in `app/(tabs)/chat.tsx`
 
 ## 🔧 Troubleshooting
 
