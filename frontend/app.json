@@ -9,12 +9,18 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "se.ascentic.smartclassroom",
       "supportsTablet": true,
+      "config": {
+        "usesAppleSignIn": true
+      },
       "infoPlist": {
         "NSMicrophoneUsageDescription": "This app needs access to the microphone to record voice messages for parent-teacher communication."
       }
     },
     "android": {
+      "package": "se.ascentic.smartclassroom",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -23,9 +29,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "permissions": ["android.permission.RECORD_AUDIO"]
     },
     "web": {
       "output": "static",
