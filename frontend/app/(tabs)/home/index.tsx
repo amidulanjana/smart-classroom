@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import ParentPortal from "./parent";
-import TeacherPortal from "./teacher";
+import ParentPortal from "../parent";
+import TeacherPortal from "../teacher";
 
 type UserRole = "teacher" | "parent";
 
