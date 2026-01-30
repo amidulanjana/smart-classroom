@@ -8,11 +8,13 @@ import {
   StyleSheet,
   useColorScheme,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useCopilotChat } from '@/hooks/use-copilot-chat';
+import { useVoiceRecording } from '@/hooks/use-voice-recording';
 
 type RecipientType = 'all' | 'absentees' | 'specific';
 type Language = 'en' | 'si';
@@ -41,6 +43,17 @@ export default function ChatScreen() {
   // Use CopilotKit chat functionality
   const { isGenerating, generateMessage, generatedContent, error } = useCopilotChat();
 
+  // Use voice recording with auto-translation
+  const { 
+    isRecording, 
+    isProcessing, 
+    transcribedText, 
+    error: voiceError,
+    startRecording, 
+    stopRecording,
+    clearTranscription 
+  } = useVoiceRecording(language);
+
   // Update message when content is generated
   useEffect(() => {
     if (generatedContent) {
@@ -48,13 +61,37 @@ export default function ChatScreen() {
     }
   }, [generatedContent]);
 
+  // Update message when voice is transcribed
+  useEffect(() => {
+    if (transcribedText) {
+      setMessage(transcribedText);
+      clearTranscription();
+    }
+  }, [transcribedText, clearTranscription]);
+
   // Show error if any
   useEffect(() => {
     if (error) {
       console.error('AI Error:', error);
-      // You can show an alert or toast here
+      Alert.alert('Error', error);
     }
   }, [error]);
+
+  // Show voice error if any
+  useEffect(() => {
+    if (voiceError) {
+      console.error('Voice Error:', voiceError);
+      Alert.alert('Voice Recording Error', voiceError);
+    }
+  }, [voiceError]);
+
+  const handleMicPress = async () => {
+    if (isRecording) {
+      await stopRecording();
+    } else {
+      await startRecording();
+    }
+  };
 
   const handleSuggestionPress = async (suggestion: string) => {
     setSelectedSuggestion(suggestion);
@@ -225,12 +262,46 @@ export default function ChatScreen() {
               multiline
               value={message}
               onChangeText={setMessage}
+              editable={!isRecording && !isProcessing}
             />
             
             {/* Floating Mic Button */}
-            <TouchableOpacity style={[styles.micButton, { backgroundColor: primaryColor }]}>
-              <Ionicons name="mic" size={24} color="#ffffff" />
+            <TouchableOpacity 
+              style={[
+                styles.micButton, 
+                { 
+                  backgroundColor: isRecording ? '#ef4444' : isProcessing ? '#f59e0b' : primaryColor 
+                }
+              ]}
+              onPress={handleMicPress}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Ionicons 
+                  name={isRecording ? "stop" : "mic"} 
+                  size={24} 
+                  color="#ffffff" 
+                />
+              )}
             </TouchableOpacity>
+            
+            {/* Recording Status Indicator */}
+            {isRecording && (
+              <View style={styles.recordingIndicator}>
+                <View style={styles.recordingDot} />
+                <Text style={styles.recordingText}>Recording...</Text>
+              </View>
+            )}
+            
+            {/* Processing Status Indicator */}
+            {isProcessing && (
+              <View style={styles.recordingIndicator}>
+                <ActivityIndicator size="small" color={primaryColor} />
+                <Text style={styles.recordingText}>Processing audio...</Text>
+              </View>
+            )}
           </View>
 
           {/* Utility Bar */}
@@ -446,5 +517,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     marginLeft: 8,
+  },
+  recordingIndicator: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ef4444',
+    marginRight: 8,
+  },
+  recordingText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ef4444',
   },
 });

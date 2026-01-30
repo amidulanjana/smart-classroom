@@ -38,13 +38,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="teacher"
+        name="profile"
         options={{
-          href: null,
+          title: "Profile",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="person-outline" size={28} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="chat"
+        name="teacher"
         options={{
           href: null,
         }}
@@ -53,15 +56,6 @@ export default function TabLayout() {
         name="parent"
         options={{
           href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="person-outline" size={28} color={color} />
-          ),
         }}
       />
     </Tabs>
