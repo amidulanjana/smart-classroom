@@ -38,6 +38,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="teacher"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="parent"
         options={{
           href: null,
