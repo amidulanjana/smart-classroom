@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   ScrollView,
@@ -13,6 +14,7 @@ import {
 export default function ParentPortal() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const router = useRouter();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -309,6 +311,7 @@ export default function ParentPortal() {
                 styles.quickAccessCard,
                 { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
+              onPress={() => router.push("/(tabs)/home/smart-checklist")}
             >
               <View
                 style={[
@@ -343,6 +346,7 @@ export default function ParentPortal() {
                 styles.quickAccessCard,
                 { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
+              onPress={() => router.push("/(tabs)/home/backup-circle")}
             >
               <View
                 style={[
@@ -373,6 +377,7 @@ export default function ParentPortal() {
                 styles.quickAccessCard,
                 { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
+              onPress={() => router.push("/(tabs)/home/events-list")}
             >
               <View
                 style={[
