@@ -1,6 +1,5 @@
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import React from "react";
 import {
   ScrollView,
@@ -14,7 +13,6 @@ import {
 export default function TeacherPortal() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const router = useRouter();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

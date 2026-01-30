@@ -1,0 +1,440 @@
+openapi: 3.1.0
+info:
+  title: Aithon Smart Classroom API
+  description: AI-powered message classification and emergency pickup system
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+
+paths:
+  /messages:
+    post:
+      summary: Send a new message
+      description: Send a message from teacher and trigger AI classification
+      tags:
+        - Messages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sender_id
+                - student_id
+                - content
+              properties:
+                sender_id:
+                  type: string
+                  description: User ID of the sender
+                student_id:
+                  type: string
+                  description: Student ID the message is about
+                content:
+                  type: string
+                  description: Message content
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message_id:
+                        type: string
+                      classification:
+                        type: object
+                        properties:
+                          category:
+                            type: string
+                            enum: [after_class_cancellation, item_request, meeting_request, general_update]
+                          confidence_score:
+                            type: number
+                      workflow_triggered:
+                        type: string
+                      notifications_sent:
+                        type: number
+    
+    get:
+      summary: Get message history
+      description: Retrieve messages with optional filtering
+      tags:
+        - Messages
+      parameters:
+        - name: student_id
+          in: query
+          schema:
+            type: string
+          description: Filter by student ID
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Number of messages to return
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+
+  /classifications/{message_id}:
+    get:
+      summary: Get message classification
+      description: Retrieve AI classification for a specific message
+      tags:
+        - Classifications
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Message ID
+      responses:
+        '200':
+          description: Classification retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Classification'
+        '404':
+          description: Classification not found
+
+  /notifications:
+    get:
+      summary: Get notifications
+      description: Retrieve notifications with optional filtering
+      tags:
+        - Notifications
+      parameters:
+        - name: recipient_id
+          in: query
+          schema:
+            type: string
+          description: Filter by recipient user ID
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [sent, delivered, read, timeout]
+          description: Filter by notification status
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+
+  /notifications/{id}/read:
+    patch:
+      summary: Mark notification as read
+      description: Update notification status to read
+      tags:
+        - Notifications
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Notification ID
+      responses:
+        '200':
+          description: Notification marked as read
+        '404':
+          description: Notification not found
+
+  /pickup-confirmations:
+    post:
+      summary: Respond to pickup request
+      description: Guardian responds to emergency pickup notification
+      tags:
+        - Pickup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - notification_id
+                - guardian_id
+                - response
+              properties:
+                notification_id:
+                  type: string
+                guardian_id:
+                  type: string
+                response:
+                  type: string
+                  enum: [accepted, declined]
+      responses:
+        '201':
+          description: Response recorded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      confirmation_id:
+                        type: string
+                      notification_id:
+                        type: string
+                      response:
+                        type: string
+                      responded_at:
+                        type: string
+                        format: date-time
+                      escalation_stopped:
+                        type: boolean
+
+  /students/{student_id}/guardians:
+    get:
+      summary: Get student guardians
+      description: Retrieve all guardians for a student
+      tags:
+        - Guardians
+      parameters:
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Guardians retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      primary:
+                        $ref: '#/components/schemas/GuardianInfo'
+                      secondary:
+                        $ref: '#/components/schemas/GuardianInfo'
+                      backup_circle:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/GuardianInfo'
+
+  /guardians/{id}:
+    patch:
+      summary: Update guardian
+      description: Update guardian priority or status
+      tags:
+        - Guardians
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                priority:
+                  type: string
+                  enum: [primary, secondary, backup]
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Guardian updated successfully
+        '404':
+          description: Guardian not found
+
+  /students:
+    get:
+      summary: Get all students
+      description: Retrieve list of all students
+      tags:
+        - Students
+      responses:
+        '200':
+          description: Students retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Student'
+
+  /students/{id}:
+    get:
+      summary: Get student details
+      description: Retrieve details for a specific student
+      tags:
+        - Students
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Student retrieved successfully
+        '404':
+          description: Student not found
+
+  /students/{student_id}/backup-circle:
+    post:
+      summary: Add backup circle member
+      description: Create a backup circle member for emergency escalation
+      tags:
+        - Students
+      parameters:
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - guardian_id
+                - priority_order
+              properties:
+                guardian_id:
+                  type: string
+                priority_order:
+                  type: integer
+                  minimum: 1
+                  maximum: 3
+      responses:
+        '201':
+          description: Backup circle member created
+        '400':
+          description: Priority order already assigned
+
+components:
+  schemas:
+    Message:
+      type: object
+      properties:
+        _id:
+          type: string
+        senderId:
+          type: string
+        studentId:
+          type: string
+        content:
+          type: string
+        sentAt:
+          type: string
+          format: date-time
+
+    Classification:
+      type: object
+      properties:
+        message_id:
+          type: string
+        category:
+          type: string
+          enum: [after_class_cancellation, item_request, meeting_request, general_update]
+        confidence_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        classified_at:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        message_id:
+          type: string
+        type:
+          type: string
+          enum: [emergency_pickup, item_request, meeting, general]
+        status:
+          type: string
+          enum: [sent, delivered, read, timeout]
+        sent_at:
+          type: string
+          format: date-time
+        timeout_at:
+          type: string
+          format: date-time
+
+    GuardianInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        priority_order:
+          type: integer
+
+    Student:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        classId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time

@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -26,14 +27,12 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     console.log("Login pressed", { selectedRole, email });
-    // Navigate to appropriate portal based on selected role
-    if (selectedRole === "teacher") {
-      router.replace("/(tabs)/home");
-    } else {
-      router.replace("/(tabs)/parent");
-    }
+    // Save user role to AsyncStorage
+    await AsyncStorage.setItem("userRole", selectedRole);
+    // Navigate to home screen
+    router.replace("/(tabs)/home");
   };
 
   const handleGoogleSignIn = () => {
