@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "852151139795",
+    "project_id": "aithon-backend",
+    "storage_bucket": "aithon-backend.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:852151139795:android:d52e31667af41ecd074326",
+        "android_client_info": {
+          "package_name": "se.ascentic.smartclassroom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBK71NRgCjcPTQMV4PAP3mn29kw1pBUeHo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
