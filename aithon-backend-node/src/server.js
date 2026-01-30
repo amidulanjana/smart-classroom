@@ -1,6 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const path = require('path');
+const fs = require('fs');
+const yaml = require('js-yaml');
+const { apiReference } = require('@scalar/express-api-reference');
 const config = require('./config/config');
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
@@ -30,7 +34,8 @@ app.get('/', (req, res) => {
     success: true,
     message: 'Aithon Backend Server is running',
     version: '1.0.0',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    docs: `${req.protocol}://${req.get('host')}/api/docs`
   });
 });
 
@@ -42,6 +47,19 @@ app.use(`${config.apiPrefix}/v1/notifications`, notificationRoutes);
 app.use(`${config.apiPrefix}/v1/pickup-confirmations`, pickupRoutes);
 app.use(`${config.apiPrefix}/v1/guardians`, guardianRoutes);
 app.use(`${config.apiPrefix}/v1/students`, studentRoutes);
+
+// API Documentation with Scalar
+const openapiPath = path.join(__dirname, '../docs/openapi.yaml');
+const openapiSpec = yaml.load(fs.readFileSync(openapiPath, 'utf8'));
+
+app.use(
+  '/api/docs',
+  apiReference({
+    spec: {
+      content: openapiSpec,
+    },
+  })
+);
 
 // Error handling middleware (should be last)
 app.use(errorHandler);
