@@ -29,7 +29,22 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="chat"
+        options={{
+          title: "Messages",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="chatbubbles-outline" size={28} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="teacher"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
         options={{
           href: null,
         }}
