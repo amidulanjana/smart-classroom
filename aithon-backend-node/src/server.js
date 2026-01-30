@@ -10,6 +10,7 @@ const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 
 // Import routes
+const authRoutes = require('./routes/authRoutes');
 const exampleRoutes = require('./routes/exampleRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const classificationRoutes = require('./routes/classificationRoutes');
@@ -17,6 +18,8 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const pickupRoutes = require('./routes/pickupRoutes');
 const guardianRoutes = require('./routes/guardianRoutes');
 const studentRoutes = require('./routes/studentRoutes');
+const classRoutes = require('./routes/classRoutes');
+const emergencyPickupRoutes = require('./routes/emergencyPickupRoutes');
 
 // Connect to database
 connectDB();
@@ -40,6 +43,7 @@ app.get('/', (req, res) => {
 });
 
 // API Routes
+app.use(`${config.apiPrefix}/v1/auth`, authRoutes);
 app.use(`${config.apiPrefix}/example`, exampleRoutes);
 app.use(`${config.apiPrefix}/v1/messages`, messageRoutes);
 app.use(`${config.apiPrefix}/v1/classifications`, classificationRoutes);
@@ -47,6 +51,8 @@ app.use(`${config.apiPrefix}/v1/notifications`, notificationRoutes);
 app.use(`${config.apiPrefix}/v1/pickup-confirmations`, pickupRoutes);
 app.use(`${config.apiPrefix}/v1/guardians`, guardianRoutes);
 app.use(`${config.apiPrefix}/v1/students`, studentRoutes);
+app.use(`${config.apiPrefix}/v1/classes`, classRoutes);
+app.use(`${config.apiPrefix}/v1/emergency-pickups`, emergencyPickupRoutes);
 
 // API Documentation with Scalar
 const openapiPath = path.join(__dirname, '../docs/openapi.yaml');

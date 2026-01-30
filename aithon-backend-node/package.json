@@ -6,19 +6,29 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "seed": "node src/scripts/seedData.js",
+    "seed:auth": "node src/scripts/seedAuthUsers.js",
+    "seed:classes": "node src/scripts/seedClassesForTestTeacher.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["backend", "node", "express", "smart-classroom"],
+  "keywords": [
+    "backend",
+    "node",
+    "express",
+    "smart-classroom"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
-    "dotenv": "^16.3.1",
-    "cors": "^2.8.5",
-    "body-parser": "^1.20.2",
-    "mongoose": "^8.0.3",
     "@scalar/express-api-reference": "^0.2.0",
-    "js-yaml": "^4.1.0"
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "js-yaml": "^4.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
