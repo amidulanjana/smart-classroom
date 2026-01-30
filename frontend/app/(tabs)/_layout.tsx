@@ -29,12 +29,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="teacher"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="parent"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="home-outline" size={28} color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen

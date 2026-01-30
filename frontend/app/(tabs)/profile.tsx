@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import {
   ScrollView,
@@ -18,8 +19,9 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
 
-  const handleLogout = () => {
-    router.replace("/");
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem("userRole");
+    router.replace("/login");
   };
 
   return (

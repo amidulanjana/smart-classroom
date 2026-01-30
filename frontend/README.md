@@ -4,7 +4,7 @@ A React Native mobile application built with Expo that connects schools and home
 
 ## Features
 
-- **Login Screen**: Beautiful login interface with role selection (Teacher/Parent)
+- **Login Screen**: Beautiful login interface with role selection (Teacher/Parent) test part
 - **Dark Mode Support**: Automatic theme switching
 - **Clean UI**: Modern design with smooth animations
 
