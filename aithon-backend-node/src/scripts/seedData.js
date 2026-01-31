@@ -69,7 +69,7 @@ const seedData = async () => {
 
     // Create Parents
     console.log('Creating parents...');
-    const parents = [];
+    const parents = [];f
     for (let i = 1; i <= 30; i++) {
       const parent = await User.create({
         name: `Parent ${i}`,

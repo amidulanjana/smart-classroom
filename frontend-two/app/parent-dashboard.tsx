@@ -9,7 +9,11 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  Modal,
+  Dimensions,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import apiService from '@/services/api';
@@ -23,6 +27,11 @@ interface PendingPickup {
     profilePhoto?: string;
     grade: string;
     section: string;
+    homeLocation?: {
+      latitude: number;
+      longitude: number;
+      address: string;
+    };
   };
   classId: {
     name: string;
@@ -31,15 +40,21 @@ interface PendingPickup {
   newPickupTime: Date;
   recipientRole: 'primary' | 'secondary' | 'backup';
   status: string;
+  userResponse?: 'pending' | 'accepted' | 'declined';
   teacherName: string;
 }
 
 export default function ParentDashboard() {
+  const router = useRouter();
   const { user } = useAuth();
   const [pendingPickups, setPendingPickups] = useState<PendingPickup[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  
+  // Map State (Moved to separate page, keeping here just in case needed for inline preview)
+  const [mapVisible, setMapVisible] = useState(false);
+  const [mapLocation, setMapLocation] = useState<{latitude: number; longitude: number; title: string} | null>(null);
 
   useEffect(() => {
     if (user?.role === 'parent') {
@@ -91,6 +106,25 @@ export default function ParentDashboard() {
     );
   };
 
+  const openMapPage = (studentId: any) => {
+    const location = studentId.homeLocation?.latitude ? studentId.homeLocation : {
+       // Default fallback if missing 
+       latitude: 37.78825,
+       longitude: -122.4324,
+       address: 'Location Unavailable'
+    };
+
+    router.push({
+      pathname: '/pickup-map',
+      params: {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        studentName: studentId.name,
+        address: location.address
+      }
+    } as any);
+  };
+
   const submitResponse = async (
     pickup: PendingPickup,
     response: 'accepted' | 'declined'
@@ -109,18 +143,21 @@ export default function ParentDashboard() {
         if (response === 'accepted') {
           Alert.alert(
             'Pickup Confirmed',
-            `Thank you! Please pick up ${pickup.studentId.name} as soon as possible. The teacher has been notified.`,
+            `Thank you! Please pick up ${pickup.studentId.name}. Redirecting to map...`,
             [
               {
                 text: 'OK',
-                onPress: () => loadPendingPickups(),
+                onPress: () => {
+                   loadPendingPickups(); // Refresh list to show "View in Map" button
+                   openMapPage(pickup.studentId);
+                },
               },
             ]
           );
         } else {
           Alert.alert(
             'Response Recorded',
-            'Your response has been recorded. The system will notify backup parents.',
+            'Your response has been recorded.',
             [
               {
                 text: 'OK',
@@ -262,27 +299,38 @@ export default function ParentDashboard() {
 
                 {/* Action Buttons */}
                 <View style={styles.actionButtons}>
-                  <TouchableOpacity
-                    style={[styles.button, styles.acceptButton]}
-                    onPress={() => handleResponse(pickup, 'accepted')}
-                    disabled={respondingTo === pickup._id}
-                  >
-                    {respondingTo === pickup._id ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <>
-                        <Text style={styles.buttonText}>✓ I Can Pick Up</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
+                  {(pickup.userResponse === 'accepted' || pickup.status === 'read' && !pickup.userResponse) ? (
+                    <TouchableOpacity
+                      style={[styles.button, { backgroundColor: '#2196F3' }]}
+                      onPress={() => openMapPage(pickup.studentId)}
+                    >
+                      <Text style={styles.buttonText}>📍 View in Map</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.button, styles.acceptButton]}
+                        onPress={() => handleResponse(pickup, 'accepted')}
+                        disabled={respondingTo === pickup._id}
+                      >
+                        {respondingTo === pickup._id ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <>
+                            <Text style={styles.buttonText}>✓ I Can Pick Up</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.button, styles.declineButton]}
-                    onPress={() => handleResponse(pickup, 'declined')}
-                    disabled={respondingTo === pickup._id}
-                  >
-                    <Text style={styles.buttonText}>✗ I Cannot</Text>
-                  </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.button, styles.declineButton]}
+                        onPress={() => handleResponse(pickup, 'declined')}
+                        disabled={respondingTo === pickup._id}
+                      >
+                        <Text style={styles.buttonText}>✗ I Cannot</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
 
                 {/* Help Text */}
@@ -315,6 +363,7 @@ export default function ParentDashboard() {
           </Text>
         </View>
       </ScrollView>
+
     </SafeAreaView>
   );
 }

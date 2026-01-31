@@ -9,6 +9,8 @@
     "seed": "node src/scripts/seedData.js",
     "seed:auth": "node src/scripts/seedAuthUsers.js",
     "seed:classes": "node src/scripts/seedClassesForTestTeacher.js",
+    "seed:guardians": "node src/scripts/seedGuardiansForTestParent.js",
+    "seed:pickup": "node src/scripts/seedActivePickupForParent.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

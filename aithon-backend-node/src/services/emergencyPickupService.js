@@ -568,16 +568,71 @@ class EmergencyPickupService {
    * Get pending pickups for a user
    */
   async getPendingPickupsForUser(userId) {
-    const pendingNotifications = await Notification.find({
+    // 1. Fetch relevant notifications (Sent, Delivered OR Read)
+    // We include 'read' to show items that the user has already responded to (accepted)
+    const notifications = await Notification.find({
       recipientId: userId,
       notificationType: { $in: ['emergency_pickup', 'backup_pickup_request'] },
-      status: { $in: ['sent', 'delivered'] }
+      status: { $in: ['sent', 'delivered', 'read'] }
     })
-    .populate('studentId', 'name profilePhoto grade')
-    .populate('emergencyPickupId')
+    .populate('studentId', 'name profilePhoto grade homeLocation')
+    .populate({
+      path: 'emergencyPickupId',
+      populate: [
+        { path: 'classId', select: 'name' },
+        { path: 'initiatedBy', select: 'name' }
+      ]
+    })
     .sort({ sentAt: -1 });
 
-    return pendingNotifications;
+    // 2. Transform and Filter
+    return notifications.map(notification => {
+      const pickup = notification.emergencyPickupId;
+      if (!pickup) return null;
+
+      // Find the user's response in history to determine acceptance
+      // We need to look into studentPickups -> notificationHistory
+      let userResponse = 'pending';
+      let respondedAt = null;
+
+      const studentPickup = pickup.studentPickups.find(
+        sp => sp.studentId.toString() === notification.studentId._id.toString()
+      );
+
+      if (studentPickup) {
+        const historyEntry = studentPickup.notificationHistory.find(
+          nh => nh.notificationId.toString() === notification._id.toString()
+        );
+        if (historyEntry) {
+          userResponse = historyEntry.response;
+          respondedAt = historyEntry.respondedAt;
+        }
+      }
+
+      // Filter: Only return if it's pending OR if it's accepted by this user
+      if (userResponse === 'declined' || userResponse === 'timeout') {
+         // Optionally you could return these too if you want to show "Declined" history
+         // For now, let's skip them to keep the list clean, or return them with a specific flag
+         return null; 
+      }
+      
+      // If the pickup is fully completed/closed, we might want to hide it
+      // if (pickup.status === 'completed') return null;
+
+      return {
+        _id: notification._id,
+        emergencyPickupId: pickup._id,
+        studentId: notification.studentId,
+        classId: pickup.classId,
+        reason: pickup.reason,
+        newPickupTime: pickup.newPickupTime,
+        recipientRole: notification.recipientRole,
+        status: notification.status,
+        userResponse: userResponse, // 'pending', 'accepted', 'declined'
+        teacherName: pickup.initiatedBy ? pickup.initiatedBy.name : 'Unknown Teacher',
+        createdAt: notification.createdAt
+      };
+    }).filter(item => item !== null);
   }
 
   /**

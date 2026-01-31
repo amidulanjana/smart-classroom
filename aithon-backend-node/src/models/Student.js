@@ -30,6 +30,20 @@ const studentSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  homeLocation: {
+    address: {
+      type: String,
+      default: ''
+    },
+    latitude: {
+      type: Number,
+      default: 0
+    },
+    longitude: {
+      type: Number,
+      default: 0
+    }
   }
 }, {
   timestamps: true

@@ -41,27 +41,21 @@ export default function LoginScreen() {
     }
   };
 
-  const handleQuickLogin = (role: 'teacher' | 'parent') => {
-    setLoading(true);
-    
-    const mockUser = {
-      id: role === 'teacher' ? 'teacher_123' : 'parent_456',
-      name: role === 'teacher' ? 'John Teacher' : 'Sarah Parent',
-      email: role === 'teacher' ? 'teacher@school.com' : 'parent@school.com',
-      phone: '+1234567890',
-      role: role,
-    };
-
-    setUser(mockUser);
-    
-    setTimeout(() => {
+  const handleQuickLogin = async (role: 'teacher' | 'parent') => {
+    try {
+      setLoading(true);
+      const email = role === 'teacher' ? 'teacher@school.com' : 'parent@school.com';
+      const password = 'password123';
+      
+      await login(email, password);
+      
+      // Navigate is handled by the user state change or we can do it here
+      router.replace('/(tabs)' as any);
+    } catch (error: any) {
+      Alert.alert('Quick Login Failed', error.message || 'Could not login with test credentials');
+    } finally {
       setLoading(false);
-      if (role === 'teacher') {
-        router.replace('/teacher-dashboard' as any);
-      } else {
-        router.replace('/parent-dashboard' as any);
-      }
-    }, 500);
+    }
   };
 
   return (
