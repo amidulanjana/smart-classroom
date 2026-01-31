@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -24,6 +25,7 @@ interface ClassInfo {
 }
 
 export default function TeacherDashboard() {
+  const router = useRouter();
   const { user } = useAuth();
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [selectedClass, setSelectedClass] = useState<ClassInfo | null>(null);
@@ -192,6 +194,19 @@ export default function TeacherDashboard() {
         <View style={styles.header}>
           <Text style={styles.title}>Teacher Dashboard</Text>
           <Text style={styles.subtitle}>Welcome, {user.name}</Text>
+        </View>
+        {/* Class Activity Evaluation Section */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>📝 Class Activity Evaluation</Text>
+          <Text style={styles.cardSubtitle}>
+            Evaluate students based on their performance in class activities.
+          </Text>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: '#4CAF50', marginBottom: 0 }]}
+            onPress={() => router.push('/create-activity')}
+          >
+             <Text style={styles.buttonText}>New Evaluation</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Stop Class Early Section */}

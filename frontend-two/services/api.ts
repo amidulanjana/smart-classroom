@@ -3,7 +3,7 @@
  * Handles all backend communication for emergency pickup flow
  */
 
-const API_BASE_URL = 'http://localhost:3000/api/v1'; // Update with your backend URL
+const API_BASE_URL = 'http://192.168.100.159:3000/api/v1'; // Update with your backend URL
 
 interface ApiResponse<T> {
   success: boolean;
@@ -234,6 +234,51 @@ class ApiService {
   logout() {
     this.setToken(null);
   }
+
+  async createActivity(data: { title: string; description?: string; type: string; classId: string; }): Promise<ApiResponse<any>> {
+    return this.fetchWithTimeout(`${API_BASE_URL}/activities`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }).then(res => this.handleResponse(res));
+  }
+
+  async getActivity(activityId: string): Promise<ApiResponse<any>> {
+    return this.fetchWithTimeout(`${API_BASE_URL}/activities/${activityId}`).then(res => this.handleResponse(res));
+  }
+
+  async getActivityResults(activityId: string): Promise<ApiResponse<any[]>> {
+    return this.fetchWithTimeout(`${API_BASE_URL}/activities/${activityId}/results`).then(res => this.handleResponse(res));
+  }
+  
+  async addStudentsToActivity(activityId: string, studentIds: string[]): Promise<ApiResponse<any>> {
+    return this.fetchWithTimeout(`${API_BASE_URL}/activities/${activityId}/students`, {
+      method: 'POST',
+      body: JSON.stringify({ studentIds }),
+    }).then(res => this.handleResponse(res));
+  }
+
+  async saveActivityResults(activityId: string, results: any[]): Promise<ApiResponse<any>> {
+    return this.fetchWithTimeout(`${API_BASE_URL}/activities/${activityId}/results`, {
+      method: 'POST',
+      body: JSON.stringify({ results }),
+    }).then(res => this.handleResponse(res));
+  }
+
+  async getStudentsByClass(classId: string): Promise<ApiResponse<Student[]>> {
+    try {
+      const resp = await this.fetchWithTimeout(`${API_BASE_URL}/classes/${classId}`);
+      const json = await resp.json();
+      if (json.success && json.data && json.data.students) {
+        return { success: true, data: json.data.students };
+      }
+      return { success: false, message: json.message || 'Failed to fetch students' };
+    } catch (error) {
+       console.error(error);
+       return { success: false, message: 'Error fetching students' };
+    }
+  }
+
+  // ============ Evaluation Apis (End) ============ 
 
   // ============ Emergency Pickup APIs ============
 

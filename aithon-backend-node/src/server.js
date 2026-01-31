@@ -20,6 +20,7 @@ const guardianRoutes = require('./routes/guardianRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const classRoutes = require('./routes/classRoutes');
 const emergencyPickupRoutes = require('./routes/emergencyPickupRoutes');
+const activityRoutes = require('./routes/activityRoutes');
 
 // Connect to database
 connectDB();
@@ -53,6 +54,7 @@ app.use(`${config.apiPrefix}/v1/guardians`, guardianRoutes);
 app.use(`${config.apiPrefix}/v1/students`, studentRoutes);
 app.use(`${config.apiPrefix}/v1/classes`, classRoutes);
 app.use(`${config.apiPrefix}/v1/emergency-pickups`, emergencyPickupRoutes);
+app.use(`${config.apiPrefix}/v1/activities`, activityRoutes);
 
 // API Documentation with Scalar
 const openapiPath = path.join(__dirname, '../docs/openapi.yaml');
