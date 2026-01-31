@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   ScrollView,
@@ -12,8 +13,8 @@ import {
 
 export default function TeacherPortal() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
   const colors = Colors[colorScheme ?? "light"];
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
@@ -138,14 +139,11 @@ export default function TeacherPortal() {
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: colors.surface }]}
               activeOpacity={0.8}
+              onPress={() => router.push("/teacher-scoring")}
             >
-              <Ionicons
-                name="stats-chart-outline"
-                size={28}
-                color={colors.text}
-              />
+              <Ionicons name="grid-outline" size={28} color={colors.text} />
               <Text style={[styles.actionButtonText, { color: colors.text }]}>
-                Analytics
+                Scoring
               </Text>
             </TouchableOpacity>
           </View>
@@ -171,8 +169,10 @@ export default function TeacherPortal() {
             contentContainerStyle={styles.classesScroll}
           >
             {/* Class Card 1 */}
-            <View
+            <TouchableOpacity
               style={[styles.classCard, { backgroundColor: colors.surface }]}
+              activeOpacity={0.9}
+              onPress={() => router.push("/teacher-scoring")}
             >
               <View
                 style={[
@@ -269,11 +269,13 @@ export default function TeacherPortal() {
                   +21 Students
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Class Card 2 */}
-            <View
+            <TouchableOpacity
               style={[styles.classCard, { backgroundColor: colors.surface }]}
+              activeOpacity={0.9}
+              onPress={() => router.push("/teacher-scoring")}
             >
               <View
                 style={[
@@ -370,7 +372,7 @@ export default function TeacherPortal() {
                   +27 Students
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </ScrollView>
         </View>
 
