@@ -29,7 +29,7 @@ export default function ParentPortal() {
               Welcome back
             </Text>
             <Text style={[styles.greeting, { color: colors.text }]}>
-              Good Morning, Sarah
+              Good Morning, Arun
             </Text>
           </View>
           <TouchableOpacity
@@ -180,7 +180,7 @@ export default function ParentPortal() {
                 <View style={styles.childHeader}>
                   <View>
                     <Text style={[styles.childName, { color: colors.text }]}>
-                      Liyana
+                      Dimeth
                     </Text>
                     <View style={styles.locationRow}>
                       <Ionicons name="school" size={16} color={colors.green} />
@@ -241,7 +241,7 @@ export default function ParentPortal() {
                     ]}
                   />
                   <Text style={[styles.statusText, { color: colors.text }]}>
-                    Safe
+                    Omaya
                   </Text>
                 </View>
               </View>

@@ -29,11 +29,10 @@ export default function HomeScreen() {
       router.push("/pickup-map");
     } else if (actionIdentifier === "no") {
       Alert.alert(
-        "Alternative Arrangement",
-        "Please contact the school to arrange alternative pickup.",
+        "Notification Dismissed",
+        "You can view the pickup status anytime from the home screen.",
         [{ text: "OK" }],
       );
-      // Here you can add logic to notify that alternative arrangement is needed
     }
   };
 
@@ -65,12 +64,13 @@ export default function HomeScreen() {
   const triggerPickupNotification = async () => {
     try {
       await scheduleNotification({
-        title: "Backup Circle Pickup Request",
-        body: "You're in Arun Dias's backup circle. Dimeth's class is cancelled. Can you pick him up?",
+        title: "Pickup In Progress",
+        body: "Sarah from your backup circle has picked up Dimeth. View live tracking on the map.",
         data: {
-          type: "pickup_request",
+          type: "pickup_status",
           parentName: "Arun Dias",
           childName: "Dimeth",
+          pickupPerson: "Sarah",
         },
         categoryIdentifier: "pickup_request",
         trigger: null, // Show immediately

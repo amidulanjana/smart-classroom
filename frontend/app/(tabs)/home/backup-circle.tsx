@@ -38,16 +38,16 @@ export default function BackupCircleScreen() {
   const [contacts, setContacts] = useState<Contact[]>([
     {
       id: 1,
-      name: "Jessica Miller",
-      relation: "Partner",
+      name: "Sarah Miller",
+      relation: "Parent",
       priority: "Primary",
       verified: true,
-      initials: "JM",
+      initials: "SM",
     },
     {
       id: 2,
       name: "David Chen",
-      relation: "Grandparent",
+      relation: "Parent",
       priority: "Secondary",
       verified: false,
       initials: "DC",
