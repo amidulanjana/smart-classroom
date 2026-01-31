@@ -120,7 +120,13 @@ export default function ParentPortal() {
         {/* My Kids Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { marginLeft: -20 },
+                { color: colors.text },
+              ]}
+            >
               My Kids
             </Text>
             <TouchableOpacity>
@@ -137,7 +143,7 @@ export default function ParentPortal() {
             snapToInterval={296}
             decelerationRate="fast"
           >
-            {/* Child Card 1 - Leo */}
+            {/* Child Card 1 - Dimeth */}
             <View
               style={[
                 styles.childCard,
@@ -174,7 +180,7 @@ export default function ParentPortal() {
                 <View style={styles.childHeader}>
                   <View>
                     <Text style={[styles.childName, { color: colors.text }]}>
-                      Leo
+                      Liyana
                     </Text>
                     <View style={styles.locationRow}>
                       <Ionicons name="school" size={16} color={colors.green} />
@@ -206,7 +212,7 @@ export default function ParentPortal() {
               </View>
             </View>
 
-            {/* Child Card 2 - Mia */}
+            {/* Child Card 2 - Omaya */}
             <View
               style={[
                 styles.childCard,
@@ -243,7 +249,7 @@ export default function ParentPortal() {
                 <View style={styles.childHeader}>
                   <View>
                     <Text style={[styles.childName, { color: colors.text }]}>
-                      Mia
+                      Sayul
                     </Text>
                     <View style={styles.locationRow}>
                       <Ionicons
@@ -455,7 +461,7 @@ export default function ParentPortal() {
             </View>
             <View style={styles.activityInfo}>
               <Text style={[styles.activityTitle, { color: colors.text }]}>
-                Leo arrived at Soccer Practice
+                Dimeth arrived at Soccer Practice
               </Text>
               <Text
                 style={[styles.activityTime, { color: colors.textSecondary }]}
