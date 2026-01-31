@@ -20,8 +20,8 @@ const CHILD_LOCATION = {
 };
 
 const PARENT_LOCATION = {
-  latitude: 6.9497, // Slightly north of Colombo - Parent's current location
-  longitude: 79.8536,
+  latitude: 6.9542, // Sarah's location - 500m from previous position
+  longitude: 79.8581,
 };
 
 export default function PickupMapScreen() {
@@ -80,15 +80,22 @@ export default function PickupMapScreen() {
   };
 
   const handleArrived = () => {
-    Alert.alert("Confirm Arrival", "Have you arrived at the school?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Yes, I'm Here",
-        onPress: () => {
-          Alert.alert("Success", "Teacher has been notified of your arrival!");
+    Alert.alert(
+      "Notify Parent",
+      "Notify parent when child arrives home safely?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes, Notify",
+          onPress: () => {
+            Alert.alert(
+              "Notification Sent",
+              "Parent will be notified when child arrives home!",
+            );
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const handleRecenter = () => {
@@ -194,14 +201,14 @@ export default function PickupMapScreen() {
           <View style={styles.studentInfo}>
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>LD</Text>
+                <Text style={styles.avatarText}>DP</Text>
               </View>
               <View style={styles.gradeBadge}>
                 <Text style={styles.gradeText}>3rd</Text>
               </View>
             </View>
             <View>
-              <Text style={styles.pickupLabel}>PICKING UP</Text>
+              <Text style={styles.pickupLabel}>SARAH IS PICKING UP</Text>
               <Text style={styles.studentName}>Dimeth Perera</Text>
             </View>
           </View>
@@ -223,19 +230,19 @@ export default function PickupMapScreen() {
             style={styles.primaryButton}
             onPress={handleArrived}
           >
-            <Text style={styles.primaryButtonText}>Arrived at School</Text>
+            <Text style={styles.primaryButtonText}>Notify When Home</Text>
             <Ionicons name="arrow-forward" size={20} color="#FFF" />
           </TouchableOpacity>
         </View>
 
         {/* Info Banner */}
-        <View style={styles.infoBanner}>
+        {/* <View style={styles.infoBanner}>
           <Ionicons name="information-circle" size={20} color="#2463EB" />
           <Text style={styles.infoBannerText}>
             Please use <Text style={styles.infoBold}>Gate B</Text> for pickup
             today due to construction on Main St.
           </Text>
-        </View>
+        </View> */}
       </View>
     </View>
   );
@@ -479,6 +486,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#111",
+  },
+  parentInfo: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
   },
   pickupCodeContainer: {
     alignItems: "flex-end",

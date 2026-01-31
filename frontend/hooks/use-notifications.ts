@@ -120,7 +120,7 @@ async function setupNotifications() {
       identifier: "no",
       buttonTitle: "No",
       options: {
-        opensAppToForeground: false,
+        opensAppToForeground: true,
       },
     },
   ]);

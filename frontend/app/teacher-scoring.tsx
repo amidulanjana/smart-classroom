@@ -82,6 +82,7 @@ export default function TeacherScoringScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [failedAvatars, setFailedAvatars] = useState<any>({});
+  const [activityName] = useState("Biology 101");
 
   const markAllAsGood = () => {
     setStudents((s) => s.map((st) => ({ ...st, score: "😊" })));
@@ -154,16 +155,6 @@ export default function TeacherScoringScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Scorings</Text>
-        <TouchableOpacity style={styles.iconBtn}>
-          <Ionicons name="calendar-outline" size={20} color={colors.text} />
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.topActions}>
         <TouchableOpacity
           style={[styles.markAll, { backgroundColor: colors.primary }]}
@@ -172,6 +163,25 @@ export default function TeacherScoringScreen() {
           <Ionicons name="happy-outline" size={20} color="#fff" />
           <Text style={styles.markAllText}>Mark All as Good</Text>
         </TouchableOpacity>
+      </View>
+
+      <View
+        style={[
+          styles.activityTile,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <View style={styles.activityIconWrap}>
+          <Ionicons name="clipboard-outline" size={24} color={colors.primary} />
+        </View>
+        <View style={styles.activityInfo}>
+          <Text style={[styles.activityLabel, { color: colors.textSecondary }]}>
+            Activity
+          </Text>
+          <Text style={[styles.activityName, { color: colors.text }]}>
+            {activityName}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.searchWrap}>
@@ -292,6 +302,38 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   markAllText: { color: "#fff", fontWeight: "700", marginLeft: 8 },
+  activityTile: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  activityIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  activityInfo: {
+    flex: 1,
+  },
+  activityLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  activityName: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
