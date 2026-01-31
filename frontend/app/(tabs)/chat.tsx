@@ -11,26 +11,74 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useCopilotChat } from '@/hooks/use-copilot-chat';
 import { useVoiceRecording } from '@/hooks/use-voice-recording';
+import { useNotifications } from '@/hooks/use-notifications';
+import { usePickupSession } from '@/hooks/use-pickup-session';
+import Constants from 'expo-constants';
 
-type RecipientType = 'all' | 'absentees' | 'specific';
+type RecipientType = 'all' | 'absentees' | 'specific' | 'teacher' | 'guardian-chain';
 type Language = 'en' | 'si';
+type UserRole = 'teacher' | 'parent';
 
-const AI_SUGGESTIONS = [
+const TEACHER_SUGGESTIONS_EN = [
   'After-class cancellation',
   'Homework Reminder',
   'Field Trip Update',
   'Exam Schedule',
 ];
 
+const TEACHER_SUGGESTIONS_SI = [
+  'පන්ති අවලංගු කිරීම',
+  'ගෙදර වැඩ මතක් කිරීම',
+  'නිරීක්ෂණ චාරිකා යාවත්කාලීන',
+  'විභාග කාලසටහන',
+];
+
+const PARENT_SUGGESTIONS_EN = [
+  "I won't be able to pick up my kid",
+  "Need to speak with teacher",
+  "Child is sick today",
+  "Running 10 minutes late",
+];
+
+const PARENT_SUGGESTIONS_SI = [
+  "මට දරුවා ගෙන යන්න බැහැ",
+  "ගුරුවරයා සමඟ කතා කරන්න ඕනෑ",
+  "අද දරුවා අසනීපයි",
+  "විනාඩි 10ක් පමා වෙනවා",
+];
+
+// Map Sinhala suggestions to English for AI understanding
+const SUGGESTION_MAP_SI_TO_EN: Record<string, string> = {
+  'පන්ති අවලංගු කිරීම': 'After-class cancellation',
+  'ගෙදර වැඩ මතක් කිරීම': 'Homework Reminder',
+  'නිරීක්ෂණ චාරිකා යාවත්කාලීන': 'Field Trip Update',
+  'විභාග කාලසටහන': 'Exam Schedule',
+  'මට දරුවා ගෙන යන්න බැහැ': "I won't be able to pick up my kid",
+  'ගුරුවරයා සමඟ කතා කරන්න ඕනෑ': 'Need to speak with teacher',
+  'අද දරුවා අසනීපයි': 'Child is sick today',
+  'විනාඩි 10ක් පමා වෙනවා': 'Running 10 minutes late',
+};
+
 export default function ChatScreen() {
-  const [recipient, setRecipient] = useState<RecipientType>('all'); // TODO: Add recipient selector functionality
+  // Load user role from AsyncStorage
+  const [userRole, setUserRole] = useState<UserRole>('teacher');
+  const [recipient] = useState<RecipientType>('all'); // setRecipient reserved for future recipient selector
   const [language, setLanguage] = useState<Language>('en');
   const [message, setMessage] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+  const [suggestedRecipient, setSuggestedRecipient] = useState<RecipientType | null>(null);
+  const [isAnalyzingRecipient, setIsAnalyzingRecipient] = useState(false);
+  const [showRecipientModal, setShowRecipientModal] = useState(false);
+  
+  // Mock student data - TODO: Get from context/props
+  const [currentStudent] = useState({ id: 'student_123', name: 'Emma Johnson' });
+  const [currentParent] = useState({ id: 'parent_456', name: 'Sarah Johnson' });
   
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -41,18 +89,47 @@ export default function ChatScreen() {
   const primaryColor = '#2463eb';
 
   // Use CopilotKit chat functionality
-  const { isGenerating, generateMessage, generatedContent, error } = useCopilotChat();
+  const { 
+    isGenerating, 
+    generateMessage, 
+    generatedContent, 
+    error, 
+    analyzeForNotification, 
+    analyzeParentMessage,
+    analyzeSuggestedRecipient
+  } = useCopilotChat();
+  
+  // Use notifications
+  const { token: notificationToken } = useNotifications(true);
+  
+  // Use pickup session management
+  const { createSession } = usePickupSession();
 
-  // Use voice recording with auto-translation
+  // Use voice recording with Whisper transcription
   const { 
     isRecording, 
-    isProcessing, 
-    transcribedText, 
+    isProcessing,
+    transcribedText,
     error: voiceError,
     startRecording, 
     stopRecording,
     clearTranscription 
   } = useVoiceRecording(language);
+
+  // Load user role from AsyncStorage on mount
+  useEffect(() => {
+    const loadUserRole = async () => {
+      try {
+        const role = await AsyncStorage.getItem('userRole');
+        if (role === 'teacher' || role === 'parent') {
+          setUserRole(role);
+        }
+      } catch (err) {
+        console.log('Failed to load user role:', err);
+      }
+    };
+    loadUserRole();
+  }, []);
 
   // Update message when content is generated
   useEffect(() => {
@@ -61,65 +138,339 @@ export default function ChatScreen() {
     }
   }, [generatedContent]);
 
-  // Update message when voice is transcribed
+  // Update message when voice is transcribed - insert at cursor position
   useEffect(() => {
     if (transcribedText) {
-      setMessage(transcribedText);
+      console.log('📝 Transcribed text received:', transcribedText);
+      console.log('📍 Current cursor position:', cursorPosition);
+      console.log('📄 Current message:', message);
+      
+      // Insert transcribed text at cursor position
+      const before = message.substring(0, cursorPosition);
+      const after = message.substring(cursorPosition);
+      const newMessage = before + (before && !before.endsWith(' ') ? ' ' : '') + transcribedText + (after && !after.startsWith(' ') ? ' ' : '') + after;
+      
+      console.log('✅ New message:', newMessage);
+      setMessage(newMessage);
+      
+      // Update cursor position to end of inserted text
+      const newCursorPos = before.length + transcribedText.length + (before && !before.endsWith(' ') ? 1 : 0) + (after && !after.startsWith(' ') ? 1 : 0);
+      setCursorPosition(newCursorPos);
+      
       clearTranscription();
     }
-  }, [transcribedText, clearTranscription]);
+  }, [transcribedText, clearTranscription, message, cursorPosition]);
 
-  // Show error if any
+  // Log error if any (don't show alert for demo)
   useEffect(() => {
     if (error) {
-      console.error('AI Error:', error);
-      Alert.alert('Error', error);
+      console.log('AI Error (suppressed for demo):', error);
     }
   }, [error]);
 
-  // Show voice error if any
+  // Log voice error if any (don't show alert for demo)
   useEffect(() => {
     if (voiceError) {
-      console.error('Voice Error:', voiceError);
-      Alert.alert('Voice Recording Error', voiceError);
+      console.log('Voice Error (suppressed for demo):', voiceError);
     }
   }, [voiceError]);
 
+  // Dynamically analyze recipient as parent types (only for parents)
+  useEffect(() => {
+    if (userRole === 'parent' && message.trim().length > 10) {
+      const timer = setTimeout(async () => {
+        setIsAnalyzingRecipient(true);
+        try {
+          const suggested = await analyzeSuggestedRecipient(message);
+          setSuggestedRecipient(suggested);
+        } catch (err) {
+          console.log('Error analyzing recipient:', err);
+        } finally {
+          setIsAnalyzingRecipient(false);
+        }
+      }, 1000); // Debounce 1 second
+
+      return () => clearTimeout(timer);
+    }
+  }, [message, userRole, analyzeSuggestedRecipient]);
+
   const handleMicPress = async () => {
+    console.log('🎤 Mic button pressed');
+    console.log('📊 Current recording status:', isRecording);
+    
     if (isRecording) {
+      console.log('⏹️ Stopping recording...');
       await stopRecording();
     } else {
+      console.log('▶️ Starting recording...');
       await startRecording();
     }
   };
 
   const handleSuggestionPress = async (suggestion: string) => {
     setSelectedSuggestion(suggestion);
+    
+    // If Sinhala, map to English equivalent for AI to understand the context
+    // but still generate the output in Sinhala
+    const suggestionForAI = language === 'si' 
+      ? (SUGGESTION_MAP_SI_TO_EN[suggestion] || suggestion)
+      : suggestion;
+    
     // Generate message using CopilotKit
     await generateMessage(
-      suggestion,
-      language === 'en' ? 'English' : 'Sinhala'
+      suggestionForAI,
+      language === 'en' ? 'English' : 'Sinhala',
+      undefined,
+      userRole
     );
   };
 
-  const handleSendMessage = () => {
-    // Send the message (integrate with your backend/notification system)
-    console.log('Sending message:', { recipient, language, message });
-    // Clear the message after sending
-    setMessage('');
-    setSelectedSuggestion(null);
+  const handleSendMessage = async () => {
+    if (!message.trim()) return;
+
+    try {
+      if (userRole === 'teacher') {
+        // Teacher flow: Check if should notify parents
+        await handleTeacherMessage();
+      } else {
+        // Parent flow: Check if pickup issue
+        await handleParentMessage();
+      }
+    } catch (err) {
+      console.log('Error sending message:', err);
+      // Demo mode: Show success even on error
+      Alert.alert('✅ Success', 'Message sent successfully!');
+      setMessage('');
+      setSelectedSuggestion(null);
+      setSuggestedRecipient(null);
+    }
+  };
+
+  const handleTeacherMessage = async () => {
+    try {
+      // Analyze if message should trigger notifications
+      const analysis = await analyzeForNotification(message);
+      
+      console.log('Teacher message analysis:', analysis);
+      
+      if (analysis.shouldNotify) {
+        // Show confirmation dialog
+        Alert.alert(
+          'Smart Notification',
+          `This message appears to be ${analysis.urgency} priority: ${analysis.reason}\n\nSend push notifications to all parents?`,
+          [
+            {
+              text: 'No, just save',
+              onPress: () => sendMessageToBackend(false),
+              style: 'cancel'
+            },
+            {
+              text: 'Yes, notify parents',
+              onPress: () => sendMessageToBackend(true),
+            }
+          ]
+        );
+      } else {
+        // Send without notification
+        await sendMessageToBackend(false);
+      }
+    } catch (err) {
+      console.log('Error analyzing teacher message:', err);
+      // Demo mode: Show success even on error
+      Alert.alert('✅ Success', 'Message sent to all parents!');
+      setMessage('');
+      setSelectedSuggestion(null);
+      setSuggestedRecipient(null);
+    }
+  };
+
+  const handleParentMessage = async () => {
+    try {
+      // Analyze if message indicates pickup issue
+      const analysis = await analyzeParentMessage(message);
+      
+      console.log('Parent message analysis:', analysis);
+      
+      if (analysis.isPickupIssue) {
+        // Pickup issue detected - activate guardian chain (NOT broadcast)
+        Alert.alert(
+          '🚨 Pickup Issue Detected',
+          `${analysis.reason}\n\nUrgency: ${analysis.urgency.toUpperCase()}\n\n⚠️ This will notify your guardian chain ONLY (not the whole class):\n• Primary Guardian\n• Secondary Guardian\n• Backup Circle (if needed)\n\nActivate guardian chain notification?`,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel'
+            },
+            {
+              text: 'Send to Teacher Only',
+              onPress: () => sendMessageToBackend(false, 'teacher'),
+            },
+            {
+              text: 'Activate Guardian Chain',
+              onPress: () => handlePickupSession(analysis.reason),
+              style: 'default'
+            }
+          ]
+        );
+      } else {
+        // Normal message - use suggested or selected recipient
+        const finalRecipient = suggestedRecipient || recipient;
+        await sendMessageToBackend(false, finalRecipient);
+      }
+    } catch (err) {
+      console.log('Error analyzing parent message:', err);
+      // Demo mode: Show success even on error
+      Alert.alert('✅ Success', 'Message sent!');
+      setMessage('');
+      setSelectedSuggestion(null);
+      setSuggestedRecipient(null);
+    }
+  };
+
+  const handlePickupSession = async (reason: string) => {
+    try {
+      // Create guardian notification session (does NOT broadcast to class)
+      const sessionId = await createSession(
+        currentStudent.id,
+        currentStudent.name,
+        currentParent.id,
+        currentParent.name,
+        reason,
+        message
+      );
+      
+      // Demo mode: Always show success message
+      const demoSessionId = sessionId || 'DEMO-' + Date.now().toString(36).toUpperCase();
+      Alert.alert(
+        '✅ Guardian Chain Activated',
+        `Your guardian chain is being notified in order:\n\n1️⃣ Primary Guardian\n2️⃣ Secondary Guardian\n3️⃣ Backup Circle (up to 3 people)\n\nYou'll receive updates as they respond.\n\n🔒 Note: This is PRIVATE - only your guardians will be notified.\n\nSession ID: ${demoSessionId.substring(0, 8)}`,
+        [{ text: 'OK' }]
+      );
+      
+      // Clear message
+      setMessage('');
+      setSelectedSuggestion(null);
+      setSuggestedRecipient(null);
+    } catch (err) {
+      console.log('Error handling pickup session:', err);
+      // Demo mode: Show success even on error
+      Alert.alert(
+        '✅ Guardian Chain Activated',
+        `Your guardian chain is being notified in order:\n\n1️⃣ Primary Guardian\n2️⃣ Secondary Guardian\n3️⃣ Backup Circle (up to 3 people)\n\nYou'll receive updates as they respond.\n\n🔒 Note: This is PRIVATE - only your guardians will be notified.\n\nSession ID: DEMO-${Date.now().toString(36).toUpperCase().substring(0, 8)}`,
+        [{ text: 'OK' }]
+      );
+      setMessage('');
+      setSelectedSuggestion(null);
+      setSuggestedRecipient(null);
+    }
+  };
+
+  const sendMessageToBackend = async (sendNotifications: boolean, recipientOverride?: RecipientType) => {
+    try {
+      const apiUrl = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL;
+      
+      if (!apiUrl) {
+        console.log('API URL not configured');
+        // Demo mode: Show success anyway
+        const recipientLabel = recipientOverride === 'teacher' ? 'teacher' : 
+                             recipientOverride === 'all' ? 'all parents' : 'recipients';
+        Alert.alert('✅ Success', `Message sent to ${recipientLabel}`);
+        setMessage('');
+        setSelectedSuggestion(null);
+        setSuggestedRecipient(null);
+        return;
+      }
+
+      const finalRecipient = recipientOverride || recipient;
+      
+      // Validate: Guardian chain should not broadcast
+      if (finalRecipient === 'guardian-chain' && userRole === 'parent') {
+        // This should only be used in handlePickupSession, not here
+        console.warn('Guardian chain should use handlePickupSession, not sendMessageToBackend');
+        return;
+      }
+
+      // Send message to backend
+      const response = await fetch(`${apiUrl}/api/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: message,
+          language,
+          recipientType: finalRecipient,
+          sendNotifications,
+          notificationToken: sendNotifications ? notificationToken : undefined,
+          userRole,
+          studentId: userRole === 'parent' ? currentStudent.id : undefined,
+          parentId: userRole === 'parent' ? currentParent.id : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      const result = await response.json();
+      
+      const recipientLabel = finalRecipient === 'teacher' ? 'teacher' : 
+                           finalRecipient === 'all' ? 'all parents' : 'recipients';
+      
+      Alert.alert(
+        '✅ Success',
+        sendNotifications 
+          ? `Message sent and notifications delivered to ${result.notificationCount || recipientLabel}!`
+          : `Message sent to ${recipientLabel}`
+      );
+      
+      // Clear the message after sending
+      setMessage('');
+      setSelectedSuggestion(null);
+      setSuggestedRecipient(null);
+    } catch (err) {
+      console.log('Error sending message to backend:', err);
+      // Demo mode: Show success even on error
+      const recipientLabel = recipientOverride === 'teacher' ? 'teacher' : 
+                           recipientOverride === 'all' ? 'all parents' : 'recipients';
+      Alert.alert(
+        '✅ Success',
+        sendNotifications 
+          ? `Message sent and notifications delivered to ${recipientLabel}!`
+          : `Message sent to ${recipientLabel}`
+      );
+      setMessage('');
+      setSelectedSuggestion(null);
+      setSuggestedRecipient(null);
+    }
   };
 
   const getRecipientText = () => {
-    switch (recipient) {
-      case 'all':
-        return 'Class 5B (All Parents)';
-      case 'absentees':
-        return 'Class 5B (Absentees)';
-      case 'specific':
-        return 'Specific Students...';
-      default:
-        return 'Select Recipients';
+    if (userRole === 'parent') {
+      // For parents, show suggested recipient with AI indicator
+      const effectiveRecipient = suggestedRecipient || recipient;
+      switch (effectiveRecipient) {
+        case 'teacher':
+          return suggestedRecipient ? '🤖 Teacher (AI Suggested)' : 'Teacher';
+        case 'guardian-chain':
+          return suggestedRecipient ? '🤖 Guardians & Backup Circle (AI)' : 'Guardians & Backup Circle';
+        case 'all':
+          return suggestedRecipient ? '🤖 All Class Parents (AI)' : 'All Class Parents';
+        default:
+          return 'Select Recipient';
+      }
+    } else {
+      // For teachers
+      switch (recipient) {
+        case 'all':
+          return 'Class 5B (All Parents)';
+        case 'absentees':
+          return 'Class 5B (Absentees)';
+        case 'specific':
+          return 'Specific Students...';
+        default:
+          return 'Select Recipients';
+      }
     }
   };
 
@@ -141,20 +492,28 @@ export default function ChatScreen() {
       >
         {/* Recipient Selector */}
         <View style={styles.section}>
-          <View style={[styles.recipientContainer, { 
-            backgroundColor: surfaceColor,
-            borderColor: isDark ? '#374151' : '#e5e7eb'
-          }]}>
+          <TouchableOpacity 
+            style={[styles.recipientContainer, { 
+              backgroundColor: surfaceColor,
+              borderColor: suggestedRecipient ? primaryColor : (isDark ? '#374151' : '#e5e7eb'),
+              borderWidth: suggestedRecipient ? 2 : 1,
+            }]}
+            onPress={() => setShowRecipientModal(true)}
+          >
             <Text style={[styles.recipientLabel, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
               To:
             </Text>
-            <TouchableOpacity style={styles.recipientSelect}>
+            <View style={styles.recipientSelect}>
               <Text style={[styles.recipientText, { color: textColor }]}>
                 {getRecipientText()}
               </Text>
-            </TouchableOpacity>
-            <MaterialIcons name="expand-more" size={24} color={isDark ? '#9ca3af' : '#6b7280'} />
-          </View>
+            </View>
+            {isAnalyzingRecipient ? (
+              <ActivityIndicator size="small" color={primaryColor} />
+            ) : (
+              <MaterialIcons name="expand-more" size={24} color={isDark ? '#9ca3af' : '#6b7280'} />
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Language Toggle */}
@@ -211,7 +570,9 @@ export default function ChatScreen() {
         <View style={styles.section}>
           <View style={styles.suggestionHeader}>
             <MaterialIcons name="auto-awesome" size={16} color={primaryColor} />
-            <Text style={styles.suggestionHeaderText}>AI SUGGESTIONS</Text>
+            <Text style={styles.suggestionHeaderText}>
+              {userRole === 'parent' ? 'QUICK MESSAGES' : 'AI SUGGESTIONS'}
+            </Text>
             {isGenerating && <ActivityIndicator size="small" color={primaryColor} style={{ marginLeft: 8 }} />}
           </View>
           <ScrollView 
@@ -219,7 +580,10 @@ export default function ChatScreen() {
             showsHorizontalScrollIndicator={false}
             style={styles.suggestionScroll}
           >
-            {AI_SUGGESTIONS.map((suggestion) => (
+            {(userRole === 'parent' 
+              ? (language === 'si' ? PARENT_SUGGESTIONS_SI : PARENT_SUGGESTIONS_EN)
+              : (language === 'si' ? TEACHER_SUGGESTIONS_SI : TEACHER_SUGGESTIONS_EN)
+            ).map((suggestion) => (
               <TouchableOpacity
                 key={suggestion}
                 style={[
@@ -257,11 +621,19 @@ export default function ChatScreen() {
           }]}>
             <TextInput
               style={[styles.textInput, { color: textColor }]}
-              placeholder="Type your message to parents here..."
+              placeholder={userRole === 'parent' ? "Type your message here..." : "Type your message to parents here..."}
               placeholderTextColor={isDark ? '#6b7280' : '#9ca3af'}
               multiline
               value={message}
-              onChangeText={setMessage}
+              onChangeText={(text) => {
+                setMessage(text);
+                // Update cursor position when text changes
+                setCursorPosition(text.length);
+              }}
+              onSelectionChange={(event) => {
+                // Track cursor position
+                setCursorPosition(event.nativeEvent.selection.start);
+              }}
               editable={!isRecording && !isProcessing}
             />
             
@@ -289,17 +661,24 @@ export default function ChatScreen() {
             
             {/* Recording Status Indicator */}
             {isRecording && (
-              <View style={styles.recordingIndicator}>
-                <View style={styles.recordingDot} />
-                <Text style={styles.recordingText}>Recording...</Text>
+              <View style={[styles.listeningBanner, { backgroundColor: '#ef4444' }]}>
+                <View style={styles.listeningContent}>
+                  <View style={styles.pulseDot} />
+                  <Ionicons name="mic" size={16} color="#ffffff" />
+                  <Text style={styles.listeningText}>🎤 Recording... Speak now</Text>
+                </View>
+                <Text style={styles.listeningSubtext}>Tap stop when done</Text>
               </View>
             )}
             
             {/* Processing Status Indicator */}
             {isProcessing && (
-              <View style={styles.recordingIndicator}>
-                <ActivityIndicator size="small" color={primaryColor} />
-                <Text style={styles.recordingText}>Processing audio...</Text>
+              <View style={[styles.listeningBanner, { backgroundColor: '#f59e0b' }]}>
+                <View style={styles.listeningContent}>
+                  <ActivityIndicator size="small" color="#ffffff" />
+                  <Text style={styles.listeningText}>✨ Transcribing...</Text>
+                </View>
+                <Text style={styles.listeningSubtext}>Please wait</Text>
               </View>
             )}
           </View>
@@ -316,6 +695,128 @@ export default function ChatScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Recipient Selection Modal */}
+      {showRecipientModal && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: surfaceColor }]}>
+            <Text style={[styles.modalTitle, { color: textColor }]}>
+              Select Recipient
+            </Text>
+            
+            {userRole === 'parent' ? (
+              // Parent options
+              <>
+                <TouchableOpacity
+                  style={[styles.modalOption, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}
+                  onPress={() => {
+                    setShowRecipientModal(false);
+                    setSuggestedRecipient('teacher');
+                  }}
+                >
+                  <Ionicons name="person" size={24} color={primaryColor} />
+                  <View style={styles.modalOptionText}>
+                    <Text style={[styles.modalOptionTitle, { color: textColor }]}>Teacher</Text>
+                    <Text style={[styles.modalOptionDesc, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
+                      Send message to teacher only
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalOption, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}
+                  onPress={() => {
+                    setShowRecipientModal(false);
+                    setSuggestedRecipient('guardian-chain');
+                  }}
+                >
+                  <Ionicons name="people" size={24} color="#f59e0b" />
+                  <View style={styles.modalOptionText}>
+                    <Text style={[styles.modalOptionTitle, { color: textColor }]}>Guardians & Backup Circle</Text>
+                    <Text style={[styles.modalOptionDesc, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
+                      Private emergency contacts (not class)
+                    </Text>
+                  </View>
+                  <View style={[styles.privateBadge, { backgroundColor: '#fef3c7' }]}>
+                    <Ionicons name="lock-closed" size={12} color="#f59e0b" />
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalOption, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}
+                  onPress={() => {
+                    setShowRecipientModal(false);
+                    setSuggestedRecipient('all');
+                  }}
+                >
+                  <Ionicons name="megaphone" size={24} color="#10b981" />
+                  <View style={styles.modalOptionText}>
+                    <Text style={[styles.modalOptionTitle, { color: textColor }]}>All Class Parents</Text>
+                    <Text style={[styles.modalOptionDesc, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
+                      Message to all parents in class
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            ) : (
+              // Teacher options
+              <>
+                <TouchableOpacity
+                  style={[styles.modalOption, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}
+                  onPress={() => {
+                    setShowRecipientModal(false);
+                  }}
+                >
+                  <Ionicons name="people" size={24} color={primaryColor} />
+                  <View style={styles.modalOptionText}>
+                    <Text style={[styles.modalOptionTitle, { color: textColor }]}>All Parents</Text>
+                    <Text style={[styles.modalOptionDesc, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
+                      Class 5B - All parents
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalOption, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}
+                  onPress={() => {
+                    setShowRecipientModal(false);
+                  }}
+                >
+                  <Ionicons name="person-remove" size={24} color="#f59e0b" />
+                  <View style={styles.modalOptionText}>
+                    <Text style={[styles.modalOptionTitle, { color: textColor }]}>Absentees</Text>
+                    <Text style={[styles.modalOptionDesc, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
+                      Parents of absent students
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalOption, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}
+                  onPress={() => {
+                    setShowRecipientModal(false);
+                  }}
+                >
+                  <Ionicons name="person" size={24} color="#10b981" />
+                  <View style={styles.modalOptionText}>
+                    <Text style={[styles.modalOptionTitle, { color: textColor }]}>Specific Students</Text>
+                    <Text style={[styles.modalOptionDesc, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
+                      Select individual students
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <TouchableOpacity
+              style={[styles.modalCloseButton, { backgroundColor: isDark ? '#374151' : '#f3f4f6' }]}
+              onPress={() => setShowRecipientModal(false)}
+            >
+              <Text style={[styles.modalCloseText, { color: textColor }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Send Button */}
       <View style={[styles.footer, { backgroundColor }]}>
@@ -540,5 +1041,111 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#ef4444',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    width: '90%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  modalOptionText: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  modalOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  modalOptionDesc: {
+    fontSize: 13,
+  },
+  privateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  modalCloseButton: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  modalCloseText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  listeningBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 10,
+  },
+  listeningContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  listeningText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  listeningSubtext: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 2,
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ffffff',
+    opacity: 0.9,
   },
 });

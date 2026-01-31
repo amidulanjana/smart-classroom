@@ -41,7 +41,7 @@ export default function TeacherPortal() {
                 Welcome back,
               </Text>
               <Text style={[styles.userName, { color: colors.text }]}>
-                Mr. Anderson
+                Mrs. Perera
               </Text>
             </View>
           </View>
